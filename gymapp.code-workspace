@@ -2,6 +2,9 @@
 	"folders": [
 		{
 			"path": "broker"
+		},
+		{
+			"path": "workout-service"
 		}
 	],
 	"settings": {}
