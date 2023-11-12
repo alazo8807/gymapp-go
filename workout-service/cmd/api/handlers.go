@@ -1,7 +1,11 @@
 package main
 
 import (
+	"errors"
+	"fmt"
+	"log"
 	"net/http"
+	"time"
 	"workout/data"
 )
 
@@ -12,13 +16,18 @@ type JSONPayload struct {
 func (app *Config) AddWorkout(w http.ResponseWriter, r *http.Request) {
 	var requestPayload JSONPayload
 
-	_ = app.readJSON(w, r, &requestPayload)
-
-	entry := data.WorkoutEntry{
-		Description: requestPayload.Description,
+	err := app.readJSON(w, r, &requestPayload)
+	if err != nil {
+		log.Print("Incorrect payload or empty")
+		app.errorJSON(w, errors.New("Incorrect payload"), http.StatusBadRequest)
+		return
 	}
 
-	err := app.Models.WorkoutEntry.Insert(entry)
+	entry := data.WorkoutEntry{
+		Description: fmt.Sprintf("[%s] %s", time.Now().Format("2006-01-01"), requestPayload.Description),
+	}
+
+	err = app.Models.WorkoutEntry.Insert(entry)
 	if err != nil {
 		_ = app.errorJSON(w, err)
 	}

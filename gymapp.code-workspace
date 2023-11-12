@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "workout-service"
+		},
+		{
+			"path": "gymapp_devops"
 		}
 	],
 	"settings": {}

@@ -14,7 +14,7 @@ import (
 
 const (
 	webPort  = "80"
-	mongoURL = "mongodb://mongo:27017"
+	mongoURL = "mongodb://localhost:27017"
 	gRpcPort = "50001"
 )
 
@@ -44,7 +44,7 @@ func main() {
 		Models: data.New(mongoClient),
 	}
 
-	log.Printf("Starting broker server on port %s\n", webPort)
+	log.Printf("Starting workout server on port %s\n", webPort)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%s", webPort),
