@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
+	"workout/data"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -16,7 +18,9 @@ const (
 	gRpcPort = "50001"
 )
 
-type Config struct{}
+type Config struct {
+	Models data.Models
+}
 
 func main() {
 	// connect to mongo
@@ -35,6 +39,22 @@ func main() {
 			log.Fatal(err)
 		}
 	}()
+
+	app := Config{
+		Models: data.New(mongoClient),
+	}
+
+	log.Printf("Starting broker server on port %s\n", webPort)
+
+	srv := &http.Server{
+		Addr:    fmt.Sprintf(":%s", webPort),
+		Handler: app.routes(),
+	}
+
+	err = srv.ListenAndServe()
+	if err != nil {
+		log.Panic(err)
+	}
 }
 
 func connectToMongo() (*mongo.Client, error) {

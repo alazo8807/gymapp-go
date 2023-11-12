@@ -19,6 +19,7 @@ func (l *WorkoutEntry) Insert(workout WorkoutEntry) error {
 	collection := client.Database(Database).Collection(WorkoutCollection)
 
 	workout.ID = primitive.NewObjectID().Hex()
+	workout.Exercises = []Exercise{}
 	workout.CreatedAt = time.Now()
 
 	_, err := collection.InsertOne(context.TODO(), workout)
