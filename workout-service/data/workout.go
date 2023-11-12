@@ -54,3 +54,68 @@ func GetAll(client *mongo.Client) ([]WorkoutEntry, error) {
 
 	return workouts, nil
 }
+
+// GetWorkoutByID retrieves a workout by ID from the MongoDB collection
+func GetWorkoutByID(client *mongo.Client, workoutID string) (*WorkoutEntry, error) {
+	collection := client.Database(Database).Collection(WorkoutCollection)
+
+	objectID, err := primitive.ObjectIDFromHex(workoutID)
+	if err != nil {
+		log.Println("Error converting workout ID:", err)
+		return nil, err
+	}
+
+	filter := bson.M{"_id": objectID}
+
+	var workout WorkoutEntry
+	err = collection.FindOne(context.TODO(), filter).Decode(&workout)
+	if err != nil {
+		log.Println("Error getting workout by ID:", err)
+		return nil, err
+	}
+
+	return &workout, nil
+}
+
+// UpdateWorkout updates a workout in the MongoDB collection
+func UpdateWorkout(client *mongo.Client, workoutID string, updatedWorkout WorkoutEntry) error {
+	collection := client.Database(Database).Collection(WorkoutCollection)
+
+	objectID, err := primitive.ObjectIDFromHex(workoutID)
+	if err != nil {
+		log.Println("Error converting workout ID:", err)
+		return err
+	}
+
+	filter := bson.M{"_id": objectID}
+	update := bson.M{"$set": updatedWorkout}
+
+	_, err = collection.UpdateOne(context.TODO(), filter, update)
+	if err != nil {
+		log.Println("Error updating workout:", err)
+		return err
+	}
+
+	return nil
+}
+
+// DeleteWorkout deletes a workout from the MongoDB collection
+func DeleteWorkout(client *mongo.Client, workoutID string) error {
+	collection := client.Database(Database).Collection(WorkoutCollection)
+
+	objectID, err := primitive.ObjectIDFromHex(workoutID)
+	if err != nil {
+		log.Println("Error converting workout ID:", err)
+		return err
+	}
+
+	filter := bson.M{"_id": objectID}
+
+	_, err = collection.DeleteOne(context.TODO(), filter)
+	if err != nil {
+		log.Println("Error deleting workout:", err)
+		return err
+	}
+
+	return nil
+}
