@@ -7,7 +7,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -15,7 +14,7 @@ const Database = "gymapp"
 const WorkoutCollection = "workouts"
 
 // Insert adds a new workout into the MongoDB collection
-func (l *WorkoutEntry) Insert(workout WorkoutEntry) error {
+func (w *WorkoutEntry) Insert(workout WorkoutEntry) error {
 	collection := client.Database(Database).Collection(WorkoutCollection)
 
 	workout.ID = primitive.NewObjectID().Hex()
@@ -32,7 +31,7 @@ func (l *WorkoutEntry) Insert(workout WorkoutEntry) error {
 }
 
 // GetAll retrieves all workouts from the MongoDB collection
-func GetAll(client *mongo.Client) ([]WorkoutEntry, error) {
+func (w *WorkoutEntry) GetAll() ([]WorkoutEntry, error) {
 	collection := client.Database(Database).Collection(WorkoutCollection)
 
 	opts := options.Find()
@@ -56,19 +55,11 @@ func GetAll(client *mongo.Client) ([]WorkoutEntry, error) {
 }
 
 // GetWorkoutByID retrieves a workout by ID from the MongoDB collection
-func GetWorkoutByID(client *mongo.Client, workoutID string) (*WorkoutEntry, error) {
+func (w *WorkoutEntry) GetWorkoutByID(workoutID string) (*WorkoutEntry, error) {
 	collection := client.Database(Database).Collection(WorkoutCollection)
 
-	objectID, err := primitive.ObjectIDFromHex(workoutID)
-	if err != nil {
-		log.Println("Error converting workout ID:", err)
-		return nil, err
-	}
-
-	filter := bson.M{"_id": objectID}
-
 	var workout WorkoutEntry
-	err = collection.FindOne(context.TODO(), filter).Decode(&workout)
+	err := collection.FindOne(context.TODO(), bson.M{"_id": workoutID}).Decode(&workout)
 	if err != nil {
 		log.Println("Error getting workout by ID:", err)
 		return nil, err
@@ -78,19 +69,13 @@ func GetWorkoutByID(client *mongo.Client, workoutID string) (*WorkoutEntry, erro
 }
 
 // UpdateWorkout updates a workout in the MongoDB collection
-func UpdateWorkout(client *mongo.Client, workoutID string, updatedWorkout WorkoutEntry) error {
+func (w *WorkoutEntry) UpdateWorkout(workoutID string, updatedWorkout WorkoutEntry) error {
 	collection := client.Database(Database).Collection(WorkoutCollection)
 
-	objectID, err := primitive.ObjectIDFromHex(workoutID)
-	if err != nil {
-		log.Println("Error converting workout ID:", err)
-		return err
-	}
-
-	filter := bson.M{"_id": objectID}
+	filter := bson.M{"_id": workoutID}
 	update := bson.M{"$set": updatedWorkout}
 
-	_, err = collection.UpdateOne(context.TODO(), filter, update)
+	_, err := collection.UpdateOne(context.TODO(), filter, update)
 	if err != nil {
 		log.Println("Error updating workout:", err)
 		return err
@@ -100,20 +85,38 @@ func UpdateWorkout(client *mongo.Client, workoutID string, updatedWorkout Workou
 }
 
 // DeleteWorkout deletes a workout from the MongoDB collection
-func DeleteWorkout(client *mongo.Client, workoutID string) error {
+func (w *WorkoutEntry) DeleteWorkout(workoutID string) error {
 	collection := client.Database(Database).Collection(WorkoutCollection)
 
-	objectID, err := primitive.ObjectIDFromHex(workoutID)
+	filter := bson.M{"_id": workoutID}
+
+	_, err := collection.DeleteOne(context.TODO(), filter)
 	if err != nil {
-		log.Println("Error converting workout ID:", err)
+		log.Println("Error deleting workout:", err)
 		return err
 	}
 
-	filter := bson.M{"_id": objectID}
+	return nil
+}
 
-	_, err = collection.DeleteOne(context.TODO(), filter)
+// AddExerciseToWorkoutHandler is an HTTP handler function to add an exercise to a workout
+func (w *WorkoutEntry) AddExerciseToWorkout(workoutID string, exercise Exercise) error {
+	// Retrieve the existing workout from the database
+	existingWorkout, err := w.GetWorkoutByID(workoutID)
 	if err != nil {
-		log.Println("Error deleting workout:", err)
+		log.Println("Error retrieving workout for that ID:", err)
+		return err
+	}
+
+	// Add a unique ID to the exercise
+	exercise.ID = primitive.NewObjectID().Hex()
+
+	// Append the new exercise to the existing workout
+	existingWorkout.Exercises = append(existingWorkout.Exercises, exercise)
+
+	// Update the workout in the database
+	if err := w.UpdateWorkout(workoutID, *existingWorkout); err != nil {
+		log.Println("Error updating workout", err)
 		return err
 	}
 
