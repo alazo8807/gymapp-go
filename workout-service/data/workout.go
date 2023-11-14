@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -14,20 +15,22 @@ const Database = "gymapp"
 const WorkoutCollection = "workouts"
 
 // Insert adds a new workout into the MongoDB collection
-func (w *WorkoutEntry) Insert(workout WorkoutEntry) error {
+func (w *WorkoutEntry) Insert(workout WorkoutEntry) (string, error) {
 	collection := client.Database(Database).Collection(WorkoutCollection)
 
 	workout.ID = primitive.NewObjectID().Hex()
 	workout.Exercises = []Exercise{}
 	workout.CreatedAt = time.Now()
 
-	_, err := collection.InsertOne(context.TODO(), workout)
+	resp, err := collection.InsertOne(context.TODO(), workout)
 	if err != nil {
 		log.Println("Error adding workout:", err)
-		return err
+		return "", err
 	}
 
-	return nil
+	insertedId := resp.InsertedID.(string)
+
+	return insertedId, nil
 }
 
 // GetAll retrieves all workouts from the MongoDB collection
@@ -84,7 +87,7 @@ func (w *WorkoutEntry) UpdateWorkout(workoutID string, updatedWorkout WorkoutEnt
 	return nil
 }
 
-// DeleteWorkout deletes a workout from the MongoDB collection
+// DeleteWorkout removes a workout from the MongoDB collection
 func (w *WorkoutEntry) DeleteWorkout(workoutID string) error {
 	collection := client.Database(Database).Collection(WorkoutCollection)
 
@@ -99,7 +102,7 @@ func (w *WorkoutEntry) DeleteWorkout(workoutID string) error {
 	return nil
 }
 
-// AddExerciseToWorkoutHandler is an HTTP handler function to add an exercise to a workout
+// AddExerciseToWorkoutHandler inserts a new excercise for workout with id workoutID
 func (w *WorkoutEntry) AddExerciseToWorkout(workoutID string, exercise Exercise) error {
 	// Retrieve the existing workout from the database
 	existingWorkout, err := w.GetWorkoutByID(workoutID)
@@ -113,6 +116,42 @@ func (w *WorkoutEntry) AddExerciseToWorkout(workoutID string, exercise Exercise)
 
 	// Append the new exercise to the existing workout
 	existingWorkout.Exercises = append(existingWorkout.Exercises, exercise)
+
+	// Update the workout in the database
+	if err := w.UpdateWorkout(workoutID, *existingWorkout); err != nil {
+		log.Println("Error updating workout", err)
+		return err
+	}
+
+	return nil
+}
+
+// AddSet inserts a new set for workout excercise
+func (w *WorkoutEntry) AddSet(workoutID string, excerciseID string, set Set) error {
+	// Retrieve the existing workout from the database
+	existingWorkout, err := w.GetWorkoutByID(workoutID)
+	if err != nil {
+		log.Println("Error retrieving workout for that ID:", err)
+		return err
+	}
+
+	fmt.Println(existingWorkout)
+	// Find the target excercise by excerciseID
+	var targetExcercise *Exercise
+	for i, excercise := range existingWorkout.Exercises {
+		if excercise.ID == excerciseID {
+			targetExcercise = &existingWorkout.Exercises[i]
+			break
+		}
+	}
+
+	if targetExcercise == nil {
+		return fmt.Errorf("Could not find an excercise corresponding to excerciseID: %s", excerciseID)
+	}
+
+	// Add a unique ID to the set
+	set.ID = primitive.NewObjectID().Hex()
+	targetExcercise.Sets = append(targetExcercise.Sets, set)
 
 	// Update the workout in the database
 	if err := w.UpdateWorkout(workoutID, *existingWorkout); err != nil {

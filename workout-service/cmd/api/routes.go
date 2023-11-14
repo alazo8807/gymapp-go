@@ -25,6 +25,7 @@ func (app *Config) routes() http.Handler {
 	mux.Get("/workout", app.GetWorkouts)
 	mux.Post("/workout", app.AddWorkout)
 	mux.Post("/workout/excercise", app.AddExcerciseToWorkout)
+	mux.Post("/workout/excercise/set", app.AddSet)
 
 	return mux
 }

@@ -19,6 +19,13 @@ type ExcerciseJSONPayload struct {
 	Name      string `json:"name"`
 }
 
+type SetJSONPayload struct {
+	WorkoutID   string `json:"workout_id"`
+	ExcerciseID string `json:"excercise_id"`
+	Weight      int    `bson:"weight" json:"weight"`
+	Reps        int    `bson:"reps" json:"reps"`
+}
+
 // AddExcerciseToWorkout is the route handler used adding an excercise to a workout.
 func (app *Config) GetWorkouts(w http.ResponseWriter, r *http.Request) {
 	res, err := app.Models.WorkoutEntry.GetAll()
@@ -50,7 +57,7 @@ func (app *Config) AddWorkout(w http.ResponseWriter, r *http.Request) {
 		Description: fmt.Sprintf("[%s] %s", time.Now().Format("2006-01-01"), requestPayload.Description),
 	}
 
-	err = app.Models.WorkoutEntry.Insert(entry)
+	insertedId, err := app.Models.WorkoutEntry.Insert(entry)
 	if err != nil {
 		_ = app.errorJSON(w, err)
 	}
@@ -58,6 +65,7 @@ func (app *Config) AddWorkout(w http.ResponseWriter, r *http.Request) {
 	resp := jsonResponse{
 		Error:   false,
 		Message: "Workout Created",
+		Data:    insertedId,
 	}
 
 	app.writeJSON(w, http.StatusAccepted, resp)
@@ -88,7 +96,37 @@ func (app *Config) AddExcerciseToWorkout(w http.ResponseWriter, r *http.Request)
 
 	resp := jsonResponse{
 		Error:   false,
-		Message: "Excercise added to workout",
+		Message: "Excercise added",
+	}
+
+	app.writeJSON(w, http.StatusAccepted, resp)
+}
+
+// AddSet is the route handler used adding a set to a workout's excercise.
+func (app *Config) AddSet(w http.ResponseWriter, r *http.Request) {
+	var requestPayload SetJSONPayload
+
+	err := app.readJSON(w, r, &requestPayload)
+	if err != nil {
+		log.Print("Incorrect payload or empty")
+		app.errorJSON(w, errors.New("Incorrect payload"), http.StatusBadRequest)
+		return
+	}
+
+	entry := data.Set{
+		Weight: requestPayload.Weight,
+		Reps:   requestPayload.Reps,
+	}
+
+	err = app.Models.WorkoutEntry.AddSet(requestPayload.WorkoutID, requestPayload.ExcerciseID, entry)
+	if err != nil {
+		_ = app.errorJSON(w, err)
+		return
+	}
+
+	resp := jsonResponse{
+		Error:   false,
+		Message: "Set added",
 	}
 
 	app.writeJSON(w, http.StatusAccepted, resp)

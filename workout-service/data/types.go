@@ -12,8 +12,9 @@ type WorkoutEntry struct {
 
 // Set represents a set in a workout with a weight and number of reps
 type Set struct {
-	Weight int `bson:"weight" json:"weight"`
-	Reps   int `bson:"reps" json:"reps"`
+	ID     string `bson:"_id,omitempty" json:"id,omitempty"`
+	Weight int    `bson:"weight" json:"weight"`
+	Reps   int    `bson:"reps" json:"reps"`
 }
 
 // Exercise represents an exercise in a workout with an ID, optional machine ID, name, and a list of sets
