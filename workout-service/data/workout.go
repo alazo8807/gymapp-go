@@ -155,7 +155,7 @@ func (w *WorkoutEntry) AddSet(workoutID string, excerciseID string, set Set) err
 
 	// Update the workout in the database
 	if err := w.UpdateWorkout(workoutID, *existingWorkout); err != nil {
-		log.Println("Error updating workout", err)
+		log.Println("Error updating the workout", err)
 		return err
 	}
 
